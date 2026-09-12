@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="برنامه تمرینی ۳۰ دقیقه‌ای خانگی؛ تمرین‌ها یکی‌یکی با تایمر و پیشرفت." />
+  <title>FitFlow | مربی تمرین خانگی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">FIT<span>FLOW</span></div>
+        <p>مربی تمرین خانگی · روزانه ۳۰ دقیقه</p>
+      </div>
+      <div class="streak" aria-label="تعداد روزهای فعال"><span>🔥</span><b id="streakValue">0</b><small>روز فعال</small></div>
+    </header>
+
+    <main>
+      <section class="hero-card">
+        <div>
+          <span class="eyebrow">برنامه مخصوص تو</span>
+          <h1>هر بار فقط <em>یک حرکت.</em></h1>
+          <p>حرکت را انجام بده، تایمر را دنبال کن و وقتی تمام شد دکمه «حرکت بعدی» را بزن.</p>
+        </div>
+        <div class="hero-badge"><strong>۳۰</strong><span>دقیقه</span></div>
+      </section>
+
+      <section class="day-picker" aria-label="انتخاب روز تمرین">
+        <button class="day active" data-day="sat">شنبه</button>
+        <button class="day" data-day="sun">یکشنبه</button>
+        <button class="day" data-day="mon">دوشنبه</button>
+        <button class="day" data-day="tue">سه‌شنبه</button>
+        <button class="day" data-day="wed">چهارشنبه</button>
+        <button class="day" data-day="thu">پنجشنبه</button>
+        <button class="day" data-day="fri">جمعه</button>
+      </section>
+
+      <section class="workout-layout">
+        <div class="exercise-panel">
+          <div class="panel-top">
+            <span id="dayTitle">شنبه · قدرت کل بدن</span>
+            <span id="exerciseCounter">۱ / ۶</span>
+          </div>
+
+          <div class="progress-track"><div id="progressBar"></div></div>
+
+          <div class="exercise-art" id="exerciseArt"><span id="exerciseEmoji">🦵</span></div>
+
+          <div class="exercise-copy">
+            <span class="category" id="exerciseCategory">قدرت</span>
+            <h2 id="exerciseName">اسکوات</h2>
+            <p id="exerciseHint">پاها کمی باز، کمر خنثی و حرکت را آرام انجام بده.</p>
+          </div>
+
+          <div class="metrics">
+            <div><span>مقدار</span><strong id="exerciseAmount">۱۰ تکرار</strong></div>
+            <div><span>استراحت</span><strong id="restAmount">۶۰ ثانیه</strong></div>
+            <div><span>ست</span><strong id="setAmount">۱ از ۳</strong></div>
+          </div>
+
+          <div class="timer-box" id="timerBox">
+            <span id="timerLabel">آماده‌ای؟</span>
+            <strong id="timer">00:30</strong>
+            <div class="timer-actions">
+              <button class="primary" id="startBtn">شروع تایمر</button>
+              <button class="secondary" id="skipBtn">پایان حرکت</button>
+            </div>
+          </div>
+
+          <div class="note" id="coachNote">وزنه لازم نیست. روی فرم صحیح حرکت تمرکز کن.</div>
+        </div>
+
+        <aside class="side-panel">
+          <div class="side-card">
+            <h3>امروز</h3>
+            <div class="summary-row"><span>زمان هدف</span><b>۳۰ دقیقه</b></div>
+            <div class="summary-row"><span>نوع تمرین</span><b id="summaryType">قدرت + شکم</b></div>
+            <div class="summary-row"><span>سطح</span><b>شروعی</b></div>
+          </div>
+          <div class="side-card">
+            <h3>ترتیب تمرین‌ها</h3>
+            <ol id="exerciseList" class="exercise-list"></ol>
+          </div>
+          <div class="side-card safety">
+            <h3>یادآوری</h3>
+            <p>درد تیز یا غیرعادی داشتی، تمرین را متوقف کن. در سن رشد، تمرین باید تدریجی و با فرم صحیح باشد.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer>ساخته شده برای یک برنامه ساده، منظم و بدون نیاز به تجهیزات.</footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
