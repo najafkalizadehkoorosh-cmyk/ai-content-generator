@@ -1,64 +1,20 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07111f">
-  <meta name="description" content="FitFlow — اپ تمرین خانگی ۳۰ دقیقه‌ای با تصویر، ویدئو، تایمر و برنامه روزانه.">
-  <title>FitFlow | مربی تمرین خانگی</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#07111f">
+  <meta name="description" content="FitFlow — اپ تمرین خانگی ۳۰ دقیقه‌ای با تصویر، ویدئو، تایمر و برنامه روزانه."><title>FitFlow | مربی تمرین خانگی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="style2.css">
 </head>
 <body>
-  <div class="bg-grid"></div><div class="orb orb-one"></div><div class="orb orb-two"></div>
-  <header class="topbar">
-    <a class="brand" href="#top"><span>FIT</span>FLOW</a>
-    <nav><a href="#plan">برنامه</a><a href="#session">تمرین امروز</a><a href="#tips">نکات</a></nav>
-    <div class="streak"><span>🔥</span><b id="streak">۰</b><small>روز فعال</small></div>
-  </header>
-
-  <main id="top">
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow"><span class="live-dot"></span> برنامه شخصی · ۳۰ دقیقه</div>
-        <h1>هر حرکت، <span>یک مرحله.</span><br>هر روز، یک قدم قوی‌تر.</h1>
-        <p>تمرین‌های خانگی تو با تصویر آموزشی، ویدئوی نمونه، تایمر و راهنمای فرم؛ بدون سردرگمی و مرحله‌به‌مرحله.</p>
-        <div class="hero-actions"><button class="primary big" id="startToday">شروع تمرین امروز <span>←</span></button><a class="ghost big" href="#plan">دیدن برنامه هفته</a></div>
-        <div class="hero-stats"><div><b>۳۰</b><span>دقیقه در روز</span></div><div><b>۷</b><span>روز برنامه</span></div><div><b>۱×</b><span>یک حرکت در هر مرحله</span></div></div>
-      </div>
-      <div class="hero-visual"><div class="hero-card floating"><div class="hero-card-top"><span>حرکت فعلی</span><b id="heroStep">۰۱ / ۰۶</b></div><div class="hero-illustration" id="heroIllustration"></div><div class="hero-card-bottom"><div><small>تمرین</small><strong id="heroExercise">اسکوات</strong></div><span class="pulse">●</span></div></div></div>
-    </section>
-
-    <section class="section" id="plan"><div class="section-head"><div><span class="eyebrow">برنامه هفتگی</span><h2>امروز را انتخاب کن</h2></div><p>روزهای قدرتی، استقامتی و سبک؛ با حفظ پیاده‌روی روزانه.</p></div><div class="days" id="days"></div></section>
-
-    <section class="section" id="session">
-      <div class="section-head compact"><div><span class="eyebrow">تمرین مرحله‌به‌مرحله</span><h2 id="sessionTitle">شنبه · قدرت کل بدن</h2></div><div class="session-progress"><span id="progressText">۱ از ۶</span><div><i id="progress"></i></div></div></div>
-      <div class="stage-grid">
-        <article class="media-card">
-          <div class="media-tabs"><button class="media-tab active" data-media="image">تصویر حرکت</button><button class="media-tab" data-media="video">ویدئوی نمونه</button></div>
-          <div class="media-stage">
-            <div class="media-pane image-pane active" id="imagePane"><div class="image-badge">راهنمای تصویری</div><div id="exerciseImage" class="exercise-image"></div></div>
-            <div class="media-pane video-pane" id="videoPane"><iframe id="videoFrame" src="https://www.youtube-nocookie.com/embed/A8_Zwr3SIac?rel=0&modestbranding=1" title="آموزش اسکوات از Nottingham University Hospitals NHS Trust" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
-          </div>
-          <div class="source-note">ویدئوی نمونه از Nottingham University Hospitals NHS Trust است و برای آموزش فرم حرکت استفاده می‌شود.</div>
-        </article>
-
-        <article class="exercise-card">
-          <div class="exercise-top"><div><span class="tag" id="category">قدرت</span><span class="step" id="step">مرحله ۱</span></div><span class="exercise-icon" id="emoji">🦵</span></div>
-          <h3 id="name">اسکوات</h3><p class="description" id="description">پاها کمی باز، کمر خنثی و حرکت را آرام انجام بده.</p>
-          <div class="metrics"><div><span>مقدار</span><strong id="amount">۱۰ تکرار</strong></div><div><span>استراحت</span><strong id="rest">۶۰ ثانیه</strong></div><div><span>سطح</span><strong>شروعی</strong></div></div>
-          <div class="timer-wrap"><div class="timer-label"><span id="timerLabel">آماده‌ای؟</span><b id="timer">00:30</b></div><div class="timer-line"><i id="timerProgress"></i></div><div class="timer-actions"><button class="primary" id="timerBtn">شروع تایمر</button><button class="ghost" id="nextBtn">حرکت بعدی ←</button></div></div>
-          <div class="form-tip"><span>✓</span><p id="formTip">وزنه لازم نیست؛ اولویت با فرم صحیح و حرکت کنترل‌شده است.</p></div>
-        </article>
-      </div>
-      <div class="queue" id="queue"></div>
-    </section>
-
-    <section class="section tips" id="tips"><div class="section-head"><div><span class="eyebrow">راهنمای مربی</span><h2>سه قانون ساده</h2></div></div><div class="tip-grid"><article><span>۰۱</span><h3>فرم قبل از سرعت</h3><p>حرکت را کنترل‌شده انجام بده. کیفیت مهم‌تر از تعداد است.</p></article><article><span>۰۲</span><h3>درد غیرعادی = توقف</h3><p>اگر درد تیز یا غیرعادی داشتی، تمرین را متوقف کن.</p></article><article><span>۰۳</span><h3>پیشرفت تدریجی</h3><p>وقتی آسان شد، کمی زمان یا تکرار را اضافه کن.</p></article></div></section>
-  </main>
-  <footer><div class="brand"><span>FIT</span>FLOW</div><p>مربی تمرین خانگی · برنامه ۳۰ دقیقه‌ای</p><button id="resetProgress">پاک کردن پیشرفت</button></footer>
-  <div class="toast" id="toast"></div><script src="app.js"></script>
-</body>
-</html>
+<div class="bg-grid"></div><div class="orb orb-one"></div><div class="orb orb-two"></div>
+<header class="topbar"><a class="brand" href="#top"><span>FIT</span>FLOW</a><nav><a href="#plan">برنامه</a><a href="#session">تمرین امروز</a><a href="#tips">نکات</a></nav><div class="streak"><span>🔥</span><b id="streak">۰</b><small>روز فعال</small></div></header>
+<main id="top">
+<section class="hero"><div class="hero-copy"><div class="eyebrow"><span class="live-dot"></span> برنامه شخصی · ۳۰ دقیقه</div><h1>هر حرکت، <span>یک مرحله.</span><br>هر روز، یک قدم قوی‌تر.</h1><p>تمرین‌های خانگی تو با تصویر آموزشی، ویدئوی نمونه، تایمر و راهنمای فرم؛ بدون سردرگمی و مرحله‌به‌مرحله.</p><div class="hero-actions"><button class="primary big" id="startToday">شروع تمرین امروز <span>←</span></button><a class="ghost big" href="#plan">دیدن برنامه هفته</a></div><div class="hero-stats"><div><b>۳۰</b><span>دقیقه در روز</span></div><div><b>۷</b><span>روز برنامه</span></div><div><b>۱×</b><span>یک حرکت در هر مرحله</span></div></div></div><div class="hero-visual"><div class="hero-card floating"><div class="hero-card-top"><span>حرکت فعلی</span><b id="heroStep">۰۱ / ۰۶</b></div><div class="hero-illustration" id="heroIllustration"></div><div class="hero-card-bottom"><div><small>تمرین</small><strong id="heroExercise">اسکوات</strong></div><span class="pulse">●</span></div></div></div></section>
+<section class="section" id="plan"><div class="section-head"><div><span class="eyebrow">برنامه هفتگی</span><h2>امروز را انتخاب کن</h2></div><p>روزهای قدرتی، استقامتی و سبک؛ با حفظ پیاده‌روی روزانه.</p></div><div class="days" id="days"></div></section>
+<section class="section" id="session"><div class="section-head compact"><div><span class="eyebrow">تمرین مرحله‌به‌مرحله</span><h2 id="sessionTitle">شنبه · قدرت کل بدن</h2></div><div class="session-progress"><span id="progressText">۱ از ۶</span><div><i id="progress"></i></div></div></div>
+<div class="stage-grid"><article class="media-card"><div class="media-tabs"><button class="media-tab active" data-media="image">تصویر حرکت</button><button class="media-tab" data-media="video">ویدئوی نمونه</button></div><div class="media-stage"><div class="media-pane image-pane active" id="imagePane"><div class="image-badge">تصویر آموزشی</div><div id="exerciseImage" class="exercise-image"></div></div><div class="media-pane video-pane" id="videoPane"><iframe id="videoFrame" src="https://www.youtube-nocookie.com/embed/A8_Zwr3SIac?rel=0&modestbranding=1" title="ویدئوی آموزشی اسکوات" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div></div><div class="source-note">ویدئوی نمونه از Nottingham University Hospitals NHS Trust است و برای آموزش فرم حرکت استفاده می‌شود.</div></article>
+<article class="exercise-card"><div class="exercise-top"><div><span class="tag" id="category">قدرت</span><span class="step" id="step">مرحله ۱</span></div><span class="exercise-icon" id="emoji">🦵</span></div><h3 id="name">اسکوات</h3><p class="description" id="description">پاها کمی باز، کمر خنثی و حرکت را آرام انجام بده.</p><div class="metrics"><div><span>مقدار</span><strong id="amount">۱۰ تکرار</strong></div><div><span>استراحت</span><strong id="rest">۶۰ ثانیه</strong></div><div><span>سطح</span><strong>شروعی</strong></div></div><div class="timer-wrap"><div class="timer-label"><span id="timerLabel">آماده‌ای؟</span><b id="timer">00:30</b></div><div class="timer-line"><i id="timerProgress"></i></div><div class="timer-actions"><button class="primary" id="timerBtn">شروع تایمر</button><button class="ghost" id="nextBtn">حرکت بعدی ←</button></div></div><div class="form-tip"><span>✓</span><p id="formTip">وزنه لازم نیست؛ اولویت با فرم صحیح و حرکت کنترل‌شده است.</p></div></article></div><div class="queue" id="queue"></div></section>
+<section class="section tips" id="tips"><div class="section-head"><div><span class="eyebrow">راهنمای مربی</span><h2>سه قانون ساده</h2></div></div><div class="tip-grid"><article><span>۰۱</span><h3>فرم قبل از سرعت</h3><p>حرکت را کنترل‌شده انجام بده. کیفیت مهم‌تر از تعداد است.</p></article><article><span>۰۲</span><h3>درد غیرعادی = توقف</h3><p>اگر درد تیز یا غیرعادی داشتی، تمرین را متوقف کن.</p></article><article><span>۰۳</span><h3>پیشرفت تدریجی</h3><p>وقتی آسان شد، کمی زمان یا تکرار را اضافه کن.</p></article></div></section>
+</main><footer><div class="brand"><span>FIT</span>FLOW</div><p>مربی تمرین خانگی · برنامه ۳۰ دقیقه‌ای</p><button id="resetProgress">پاک کردن پیشرفت</button></footer><div class="toast" id="toast"></div><script src="app2.js"></script>
+</body></html>
