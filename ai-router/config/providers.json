@@ -1,0 +1,23 @@
+{
+  "budget_policy": "zero-cost-only",
+  "providers": [
+    {
+      "id": "local",
+      "name": "Local Model",
+      "enabled": true,
+      "cost": 0
+    },
+    {
+      "id": "free-api",
+      "name": "Free API Adapter",
+      "enabled": false,
+      "cost": 0
+    },
+    {
+      "id": "paid",
+      "name": "Paid Provider",
+      "enabled": false,
+      "cost": null
+    }
+  ]
+}
