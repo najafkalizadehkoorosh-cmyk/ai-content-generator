@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI Router Studio — prompt compiler, task planner, approval gate and token saver." />
+  <title>AI Router Studio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">AI PROJECT ORCHESTRATOR • V1</div>
+      <h1>AI Router Studio</h1>
+      <p>یک درخواست خام را به برنامهٔ اجرایی دقیق، کم‌هزینه و قابل تأیید تبدیل کن.</p>
+    </div>
+    <div class="status-pill"><span></span> حالت صفر تومان</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel input-panel">
+      <div class="panel-head">
+        <div>
+          <h2>۱. درخواست پروژه</h2>
+          <p>هر چیزی که می‌خواهی بسازیم یا انجام دهیم را ساده بنویس.</p>
+        </div>
+        <button id="exampleBtn" class="ghost-btn">نمونه</button>
+      </div>
+
+      <textarea id="requestInput" placeholder="مثلاً: یک پژوهش علمی درباره تأثیر خواب بر حافظه دانش‌آموزان تهیه کن، منابع معتبر داشته باشد و برای هر بخش تصویر مناسب پیشنهاد بده."></textarea>
+
+      <div class="quick-grid">
+        <button data-example="یک پژوهش علمی درباره تأثیر خواب بر حافظه دانش‌آموزان تهیه کن؛ منابع معتبر، ساختار مقاله و پیشنهاد تصویر می‌خواهم.">پژوهش علمی</button>
+        <button data-example="یک سایت فروشگاهی واکنش‌گرا برای فروش برنج، چای و عسل طراحی کن؛ SEO، امنیت و تست هم داشته باشد.">ساخت سایت</button>
+        <button data-example="یک برنامه پایتون برای تبدیل و پاک‌سازی فایل‌های CSV بساز؛ رابط ساده و تست هم داشته باشد.">اتوماسیون</button>
+      </div>
+
+      <div class="options">
+        <label><span>حد کیفیت</span><select id="quality"><option value="high" selected>بالا</option><option value="balanced">متعادل</option><option value="fast">سریع</option></select></label>
+        <label><span>حالت صرفه‌جویی توکن</span><select id="tokenMode"><option value="aggressive" selected>تهاجمی</option><option value="balanced">متعادل</option><option value="off">خاموش</option></select></label>
+        <label><span>حد هزینه</span><select id="budget"><option value="zero" selected>فقط رایگان</option></select></label>
+      </div>
+
+      <button id="planBtn" class="primary-btn">ساخت Preview و برنامه اجرا</button>
+      <div id="validation" class="validation"></div>
+    </section>
+
+    <section class="panel preview-panel">
+      <div class="panel-head">
+        <div>
+          <h2>۲. Preview قبل از ساخت</h2>
+          <p>هیچ عملیات ساخت مهمی قبل از تأیید تو اجرا نمی‌شود.</p>
+        </div>
+        <span id="planStatus" class="status-text">در انتظار درخواست</span>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <div class="empty-icon">⌁</div>
+        <strong>هنوز برنامه‌ای ساخته نشده</strong>
+        <span>درخواستت را بنویس و «ساخت Preview» را بزن.</span>
+      </div>
+
+      <div id="planView" class="hidden"></div>
+
+      <div id="approvalBar" class="approval-bar hidden">
+        <div>
+          <strong>آماده اجراست.</strong>
+          <span>تأیید تو به معنی اجازه برای ورود به مرحله اجراست.</span>
+        </div>
+        <div class="approval-actions">
+          <button id="editBtn" class="ghost-btn">برگشت و ویرایش</button>
+          <button id="approveBtn" class="primary-btn">تأیید و شروع اجرا</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel execution-panel hidden" id="executionPanel">
+      <div class="panel-head">
+        <div>
+          <h2>۳. اجرای Taskها</h2>
+          <p>Taskها فقط پس از تأیید تو اجرا می‌شوند.</p>
+        </div>
+        <span id="executionStatus" class="status-text">آماده</span>
+      </div>
+      <div id="taskList" class="task-list"></div>
+      <div class="final-box" id="finalBox"></div>
+    </section>
+  </main>
+
+  <footer>AI Router Studio v1 • Prompt Compiler + Task Planner + Approval Gate + Token Saver</footer>
+  <script src="app.js"></script>
+</body>
+</html>
