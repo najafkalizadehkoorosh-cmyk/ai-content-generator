@@ -1,0 +1,32 @@
+name: AI Router CI
+
+on:
+  push:
+    branches: ["ai-router-v1"]
+  pull_request:
+    branches: ["ai-router-v1"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check ai-router/core.js
+          node --check ai-router/app.js
+          node --check ai-router/tests/core.test.cjs
+
+      - name: Run planner tests
+        run: node --test ai-router/tests/core.test.cjs
