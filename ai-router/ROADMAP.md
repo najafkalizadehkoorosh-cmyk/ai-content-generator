@@ -55,7 +55,7 @@ https://github.com/najafkalizadehkoorosh-cmyk/ai-content-generator/actions/runs/
 - تخمین توکن به‌عنوان heuristic اعلام می‌شود؛ حالت «صرفه‌جویی تهاجمی» دیگر عدد را با ضریب ساختگی کاهش نمی‌دهد.
 - تست‌ها در `.github/workflows/ai-router-ci.yml` اجرا می‌شوند: `node --check` و `node --test`.
 - GitHub Pages Workflow به `workflow_dispatch` تغییر کرد؛ تا زمان فعال‌سازی Pages از Settings، push به شاخه کاری باعث تلاش بی‌مورد برای deploy نمی‌شود.
-- آخرین CI بررسی‌شده: SUCCESS — https://github.com/najafkalizadehkoorosh-cmyk/ai-content-generator/actions/runs/38615662778
+- آخرین CI بررسی‌شده: SUCCESS — https://github.com/najafkalizadehkoorosh-cmyk/ai-content-generator/actions/runs/38615945012
 
 ## 4. تصمیم معماری
 ### انتخاب پیشنهادی: Local-first + adapterهای قابل تعویض
