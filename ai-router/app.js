@@ -3,7 +3,17 @@
 const $ = (selector) => document.querySelector(selector);
 const Core = window.AIRouterCore;
 
-const state = { plan: null, approved: false, runId: 0, timer: null };
+const state = {
+  plan: null,
+  approved: false,
+  runId: 0,
+  timer: null,
+  backendAvailable: false,
+  workspace: null,
+  backendReady: null,
+  persistencePromise: null,
+  approvalPersistencePromise: null
+};
 
 function esc(value) {
   return String(value).replace(/[&<>"]/g, (char) => ({
@@ -32,6 +42,99 @@ function tokenModeLabel(value) {
   })[value] || "نامشخص";
 }
 
+async function apiRequest(path, options = {}) {
+  if (typeof fetch !== "function") throw new Error("مرورگر به Backend محلی متصل نیست.");
+  const headers = Object.assign({}, options.headers || {});
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  const response = await fetch(path, Object.assign({
+    method: "GET",
+    headers,
+    cache: "no-store",
+    credentials: "same-origin"
+  }, options, { headers }));
+  let payload = {};
+  try {
+    payload = await response.json();
+  } catch (_) {
+    payload = {};
+  }
+  if (!response.ok) {
+    const message = payload && payload.error && payload.error.message;
+    throw new Error(message || ("خطای Backend (" + response.status + ")"));
+  }
+  return payload;
+}
+
+function setBackendStatus(message) {
+  const label = $("#backendStatusText");
+  if (label) {
+    label.textContent = message;
+    return;
+  }
+  const badge = $("#backendStatus");
+  if (badge) badge.textContent = message;
+}
+
+function statusLabel(status) {
+  return ({
+    draft: "پیش‌نویس",
+    approved: "تأیید شده",
+    simulated: "شبیه‌سازی شده",
+    cancelled: "لغو شده",
+    failed: "ناموفق"
+  })[status] || "نامشخص";
+}
+
+function renderHistory(records) {
+  const container = $("#historyList");
+  if (!container) return;
+  if (!Array.isArray(records) || records.length === 0) {
+    container.innerHTML = '<p class="history-empty">هنوز طرحی در SQLite ذخیره نشده است.</p>';
+    return;
+  }
+  container.innerHTML = records.map((record) => {
+    const timestamp = new Date(record.created_at).toLocaleString("fa-IR");
+    return '<div class="history-item"><div class="history-copy"><strong>نسخه ' +
+      esc(record.version) + ' · ' + esc(record.title) + '</strong><small>' +
+      esc(timestamp) + '</small></div><span class="history-status">' +
+      esc(statusLabel(record.status)) + '</span></div>';
+  }).join("");
+}
+
+async function refreshWorkspace() {
+  const workspace = await apiRequest("/api/workspace");
+  state.workspace = workspace.project;
+  renderHistory(workspace.recent_plans || []);
+  return workspace;
+}
+
+async function initBackend() {
+  if (typeof fetch !== "function") {
+    setBackendStatus("Backend خاموش • ذخیره‌سازی غیرفعال");
+    return false;
+  }
+  try {
+    const health = await apiRequest("/api/health");
+    const workspace = await refreshWorkspace();
+    state.backendAvailable = true;
+    setBackendStatus(
+      health.storage === "sqlite"
+        ? "Backend محلی + SQLite فعال • بدون AI"
+        : "Backend محلی فعال • وضعیت AI تأیید نشده"
+    );
+    renderHistory(workspace.recent_plans || []);
+    return true;
+  } catch (_) {
+    state.backendAvailable = false;
+    state.workspace = null;
+    setBackendStatus("Backend خاموش • طرح‌ها در این حالت ذخیره نمی‌شوند");
+    const container = $("#historyList");
+    if (container) container.innerHTML =
+      '<p class="history-empty">برای ذخیره پایدار، رابط را با فایل start_local.bat یا دستور پایتون اجرا کن.</p>';
+    return false;
+  }
+}
+
 function stopSimulation() {
   state.runId += 1;
   if (state.timer !== null) {
@@ -44,6 +147,8 @@ function invalidatePlan(reason = "ورودی تغییر کرد؛ Preview تاز�
   stopSimulation();
   state.plan = null;
   state.approved = false;
+  state.persistencePromise = null;
+  state.approvalPersistencePromise = null;
   $("#planView").classList.add("hidden");
   $("#approvalBar").classList.add("hidden");
   $("#executionPanel").classList.add("hidden");
@@ -54,8 +159,83 @@ function invalidatePlan(reason = "ورودی تغییر کرد؛ Preview تاز�
   $("#finalBox").textContent = "";
 }
 
+function persistPlan(plan) {
+  return (async () => {
+    const available = await state.backendReady;
+    if (!available || !state.workspace) return false;
+    try {
+      const result = await apiRequest("/api/plans", {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: state.workspace.id,
+          fingerprint: plan.fingerprint,
+          plan
+        })
+      });
+      plan.recordId = result.record.id;
+      plan.version = result.record.version;
+      plan.persistedStatus = result.record.status;
+      if (state.plan === plan) {
+        $("#planStatus").textContent = "Preview ذخیره شد • نسخه " + plan.version + " • تأیید نشده";
+      }
+      const workspace = await refreshWorkspace();
+      renderHistory(workspace.recent_plans || []);
+      return true;
+    } catch (error) {
+      if (state.plan === plan) {
+        $("#planStatus").textContent = "Preview آماده است، اما ذخیره SQLite ناموفق بود: " + error.message;
+      }
+      return false;
+    }
+  })();
+}
+
+function persistApproval(plan) {
+  return (async () => {
+    const saved = state.persistencePromise ? await state.persistencePromise : false;
+    if (!saved || !plan.recordId || !state.backendAvailable) return false;
+    try {
+      const result = await apiRequest("/api/plans/" + encodeURIComponent(plan.recordId) + "/approve", {
+        method: "POST",
+        body: JSON.stringify({ fingerprint: plan.fingerprint })
+      });
+      plan.persistedStatus = result.record.status;
+      return true;
+    } catch (error) {
+      setBackendStatus("SQLite فعال • ثبت تأیید ناموفق");
+      if (state.plan === plan) {
+        $("#planStatus").textContent = "شبیه‌سازی محلی شروع شد، اما تأیید در SQLite ثبت نشد: " + error.message;
+      }
+      return false;
+    }
+  })();
+}
+
+function persistSimulation(plan) {
+  return (async () => {
+    const approved = state.approvalPersistencePromise
+      ? await state.approvalPersistencePromise
+      : false;
+    if (!approved || !plan.recordId || !state.backendAvailable) return false;
+    try {
+      await apiRequest("/api/plans/" + encodeURIComponent(plan.recordId) + "/simulation", {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      plan.persistedStatus = "simulated";
+      const workspace = await refreshWorkspace();
+      renderHistory(workspace.recent_plans || []);
+      return true;
+    } catch (error) {
+      setBackendStatus("SQLite فعال • ثبت وضعیت شبیه‌سازی ناموفق");
+      return false;
+    }
+  })();
+}
+
 function buildPlan() {
   $("#validation").textContent = "";
+  stopSimulation();
 
   try {
     const plan = Core.createPlan($("#requestInput").value, {
@@ -68,6 +248,7 @@ function buildPlan() {
     plan.id = Date.now();
     state.plan = plan;
     state.approved = false;
+    state.approvalPersistencePromise = null;
 
     $("#executionPanel").classList.add("hidden");
     $("#emptyState").classList.add("hidden");
@@ -75,6 +256,7 @@ function buildPlan() {
     $("#approvalBar").classList.remove("hidden");
     $("#planStatus").textContent = "Preview آماده است — تأیید نشده";
     renderPlan();
+    state.persistencePromise = persistPlan(plan);
   } catch (error) {
     $("#validation").textContent = error.message || "ساخت Preview ناموفق بود.";
   }
@@ -119,7 +301,9 @@ function approveAndSimulate() {
     return;
   }
 
+  const approvedPlan = state.plan;
   state.approved = true;
+  state.approvalPersistencePromise = persistApproval(approvedPlan);
   $("#approvalBar").classList.add("hidden");
   $("#executionPanel").classList.remove("hidden");
   $("#executionStatus").textContent = "شبیه‌سازی در حال اجرا";
@@ -145,6 +329,7 @@ function approveAndSimulate() {
       $("#executionStatus").textContent = "شبیه‌سازی تمام شد";
       $("#finalBox").innerHTML = "<strong>فقط شبیه‌سازی انجام شد؛ هیچ Task واقعی اجرا نشد.</strong>" +
         "<p style='margin:7px 0 0;color:var(--muted);font-size:12px'>برای اجرای واقعی باید یک Provider رایگان و قابل دسترس به Backend متصل و آزمایش شود.</p>";
+      void persistSimulation(approvedPlan);
       return;
     }
 
@@ -185,3 +370,5 @@ document.querySelectorAll("[data-example]").forEach((button) => {
     invalidatePlan("نمونه بارگذاری شد؛ Preview جدید بساز.");
   });
 });
+
+state.backendReady = initBackend();
