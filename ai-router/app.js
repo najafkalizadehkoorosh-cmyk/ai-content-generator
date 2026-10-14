@@ -108,6 +108,71 @@ async function refreshWorkspace() {
   return workspace;
 }
 
+function formatModelSize(bytes) {
+  const value = Number(bytes);
+  if (!Number.isFinite(value) || value <= 0) return "حجم نامشخص";
+  if (value >= 1024 ** 3) return (value / (1024 ** 3)).toFixed(1) + " GiB";
+  return (value / (1024 ** 2)).toFixed(0) + " MiB";
+}
+
+function renderProviderResult(diagnostic) {
+  const container = $("#providerResult");
+  if (!container) return;
+  if (!diagnostic || !diagnostic.available) {
+    const message = diagnostic && diagnostic.message
+      ? diagnostic.message
+      : "Backend محلی در دسترس نیست؛ ابتدا start_local.bat را اجرا کن.";
+    container.innerHTML = '<div class="provider-state unavailable"><strong>Ollama تأیید نشد</strong><p>' +
+      esc(message) + '</p><small>هیچ مدل اجرا یا دانلود نشد.</small></div>';
+    return;
+  }
+
+  const models = Array.isArray(diagnostic.models) ? diagnostic.models : [];
+  const modelMarkup = models.map((model) => {
+    const details = [model.parameter_size, model.quantization, model.family]
+      .filter((item) => typeof item === "string" && item.trim().length > 0)
+      .join(" · ");
+    return '<div class="provider-model"><div><strong>' + esc(model.name) +
+      '</strong><small>' + esc(details || "جزئیات مدل اعلام نشده") +
+      '</small></div><span>' + esc(formatModelSize(model.size_bytes)) + '</span></div>';
+  }).join("");
+
+  container.innerHTML = '<div class="provider-state available"><strong>سرویس Ollama پاسخ داد</strong><p>' +
+    esc(diagnostic.message || "فهرست محلی خوانده شد.") + '</p><div class="provider-summary">تعداد مدل‌های محلی: ' +
+    esc(diagnostic.model_count || 0) + '</div>' +
+    (models.length
+      ? '<div class="provider-models">' + modelMarkup + '</div>'
+      : '<p class="history-empty">سرویس فعال است، اما مدل محلی‌ای در فهرست نیست.</p>') +
+    '<small>این بررسی فقط GET /api/tags را می‌خواند؛ تعداد درخواست‌های تولید متن: ۰، دانلود جدید: ۰.</small></div>';
+}
+
+async function checkProviders() {
+  const container = $("#providerResult");
+  const button = $("#providerCheckBtn");
+  if (!state.backendAvailable) {
+    if (container) container.innerHTML =
+      '<p class="history-empty">Backend در دسترس نیست؛ برنامه را با start_local.bat اجرا کن.</p>';
+    return;
+  }
+  if (button) {
+    button.disabled = true;
+    button.textContent = "در حال بررسی...";
+  }
+  if (container) container.innerHTML = '<p class="history-empty">در حال بررسی سرویس محلی؛ مدل اجرا یا دانلود نمی‌شود...</p>';
+  try {
+    const result = await apiRequest("/api/providers");
+    renderProviderResult(result.ollama);
+  } catch (error) {
+    if (container) container.innerHTML = '<div class="provider-state unavailable"><strong>بررسی ناموفق</strong><p>' +
+      esc(error.message) + '</p></div>';
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "بررسی دوباره";
+    }
+  }
+}
+
 async function initBackend() {
   if (typeof fetch !== "function") {
     setBackendStatus("Backend خاموش • ذخیره‌سازی غیرفعال");
@@ -123,6 +188,7 @@ async function initBackend() {
         : "Backend محلی فعال • وضعیت AI تأیید نشده"
     );
     renderHistory(workspace.recent_plans || []);
+    void checkProviders();
     return true;
   } catch (_) {
     state.backendAvailable = false;
@@ -370,5 +436,8 @@ document.querySelectorAll("[data-example]").forEach((button) => {
     invalidatePlan("نمونه بارگذاری شد؛ Preview جدید بساز.");
   });
 });
+
+const providerCheckButton = $("#providerCheckBtn");
+if (providerCheckButton) providerCheckButton.addEventListener("click", () => { void checkProviders(); });
 
 state.backendReady = initBackend();
