@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from providers import probe_ollama
 from store import Store, StoreError
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -147,6 +148,13 @@ class RouterHandler(BaseHTTPRequestHandler):
                 "storage": "sqlite",
                 "ai_connected": False,
                 "paid_providers_enabled": False,
+            })
+            return
+        if path == "/api/providers":
+            self._send_json(200, {
+                "ollama": probe_ollama(),
+                "paid_providers_enabled": False,
+                "cloud_providers_enabled": False,
             })
             return
         try:
