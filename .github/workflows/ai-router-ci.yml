@@ -22,6 +22,11 @@ jobs:
         with:
           node-version: 24
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Check JavaScript syntax
         run: |
           node --check ai-router/core.js
@@ -30,3 +35,9 @@ jobs:
 
       - name: Run planner tests
         run: node --test ai-router/tests/core.test.cjs
+
+      - name: Check Python syntax
+        run: python -m py_compile ai-router/backend/server.py ai-router/backend/store.py ai-router/backend/backup.py ai-router/backend/test_backend.py
+
+      - name: Run backend persistence and API tests
+        run: python -m unittest discover -s ai-router/backend -p "test_*.py" -v
