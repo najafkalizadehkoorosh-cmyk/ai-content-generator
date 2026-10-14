@@ -1,8 +1,8 @@
 name: Deploy AI Router to GitHub Pages
 
+# Publishing is manual until the repository's Pages source is intentionally enabled.
+# This prevents every code push from attempting an unconfigured public deployment.
 on:
-  push:
-    branches: ["ai-router-v1"]
   workflow_dispatch:
 
 permissions:
