@@ -1,35 +1,36 @@
 # AI Router Studio — V1
 
-نمونه اولیهٔ یک AI Project Orchestrator با رویکرد صفر-هزینه.
+**وضعیت فعلی: Prototype / Demo only** — هنوز هیچ مدل هوش مصنوعی یا API خارجی به این رابط متصل نیست.
 
-## امکانات V1
-- Prompt Compiler قانون‌محور
-- Task Decomposer
-- Difficulty Analyzer
-- Token estimator
-- Zero-budget guard
-- Preview-before-build
-- Approval Gate
-- شبیه‌ساز اجرای Taskها
-- رابط فارسی RTL و responsive
+## در نسخه فعلی
+- رابط فارسی RTL
+- تشخیص ساده Task بر اساس کلیدواژه‌ها
+- ساخت Preview از وظایف پیشنهادی
+- دروازه تأیید قبل از شبیه‌سازی
+- لغو Preview قدیمی با تغییر درخواست یا تنظیمات
+- تخمین تقریبی توکن با برچسب روشن «تخمینی»
+- شبیه‌سازی مرحله‌ها که به‌عنوان انجام واقعی کار گزارش نمی‌شود
 
-## قوانین هسته
-1. عملیات ساخت مهم قبل از تأیید کاربر اجرا نمی‌شود.
-2. MVP هیچ Provider پولی را خودکار صدا نمی‌زند.
-3. محدودسازی Context و صرفه‌جویی Token بخشی از Plan است.
-4. معماری مستقل از Provider است.
+## فعلاً پیاده‌سازی نشده
+- فراخوانی واقعی Providerها
+- routing براساس موجودی سهمیه/قیمت/قابلیت‌های تأییدشده
+- شمارش دقیق توکن از tokenizer/provider
+- اجرای واقعی Task، تست خودکار و retry
+- Cache و حافظه پایدار
+- پژوهش وب و citation checker
+- تولید تصویر
+- Instagram/Meta integration
+- انتشار تأییدشده در GitHub Pages
 
-## مسیر نسخه‌های بعد
-- Provider Adapter واقعی
-- مدل محلی
-- APIهای رایگانِ مجاز و دارای سهمیه
-- Web Research
-- Image generation
-- Project memory
-- Semantic cache
-- Executor واقعی برای کد و وب
-- GitHub PR و commit
-- اتصال اختیاری به LiteLLM یا Dify
+## سیاست‌های قطعی
+1. هزینه پرداختی مجاز در نسخه اول: ۰.
+2. هیچ Provider پولی یا با هزینه نامعلوم به‌طور خودکار اجرا نمی‌شود.
+3. تغییر ورودی یا تنظیمات، Preview و تأیید قبلی را باطل می‌کند.
+4. شبیه‌سازی هرگز به‌عنوان اجرای واقعی معرفی نمی‌شود.
+5. عملیات ساخت، حذف و انتشار واقعی به تأیید کاربر نیاز دارد.
+6. API key و access token نباید داخل frontend یا GitHub قرار بگیرند.
 
 ## اجرا
-فایل ai-router/index.html را مستقیم در مرورگر باز کن. برای MVP نصب npm لازم نیست.
+فایل `ai-router/index.html` را مستقیماً در مرورگر باز کن. این نسخه استاتیک است و برای Preview/Simulation نیاز به نصب npm ندارد.
+
+نقشه کامل اجرا: [ROADMAP.md](ROADMAP.md)
