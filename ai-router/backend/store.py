@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,7 +41,7 @@ class Store:
         return connection
 
     def _initialize(self) -> None:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             db.execute("PRAGMA journal_mode = WAL")
             db.executescript(
                 """
@@ -106,7 +107,7 @@ class Store:
 
     def get_workspace(self) -> dict[str, Any]:
         now = utc_now()
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             db.execute(
                 """
                 INSERT OR IGNORE INTO projects (id, name, description, created_at, updated_at)
@@ -120,7 +121,7 @@ class Store:
 
     def list_plans(self, project_id: str = "default", limit: int = 12) -> list[dict[str, Any]]:
         limit = max(1, min(int(limit), 50))
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             rows = db.execute(
                 """
                 SELECT id, project_id, version, payload_json, status, created_at, updated_at
@@ -145,7 +146,7 @@ class Store:
     def create_plan(self, plan: dict[str, Any], fingerprint: str, project_id: str = "default") -> dict[str, Any]:
         now = utc_now()
         plan_id = str(uuid.uuid4())
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             project = db.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
             if project is None:
                 raise StoreError("PROJECT_NOT_FOUND", "پروژه پیدا نشد.", 404)
@@ -174,7 +175,7 @@ class Store:
         return self._plan(row)
 
     def get_plan(self, plan_id: str) -> dict[str, Any]:
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
         if row is None:
             raise StoreError("PLAN_NOT_FOUND", "طرح پیدا نشد.", 404)
@@ -182,7 +183,7 @@ class Store:
 
     def approve_plan(self, plan_id: str, fingerprint: str) -> dict[str, Any]:
         now = utc_now()
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
             if row is None:
                 raise StoreError("PLAN_NOT_FOUND", "طرح پیدا نشد.", 404)
@@ -197,7 +198,7 @@ class Store:
 
     def mark_simulated(self, plan_id: str) -> dict[str, Any]:
         now = utc_now()
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             row = db.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
             if row is None:
                 raise StoreError("PLAN_NOT_FOUND", "طرح پیدا نشد.", 404)
@@ -214,7 +215,7 @@ class Store:
 
     def list_events(self, project_id: str = "default", limit: int = 50) -> list[dict[str, Any]]:
         limit = max(1, min(int(limit), 200))
-        with self._connect() as db:
+        with closing(self._connect()) as db, db:
             rows = db.execute(
                 """
                 SELECT id, plan_id, event_type, payload_json, created_at
