@@ -37,7 +37,7 @@ jobs:
         run: node --test ai-router/tests/core.test.cjs
 
       - name: Check Python syntax
-        run: python -m py_compile ai-router/backend/server.py ai-router/backend/store.py ai-router/backend/backup.py ai-router/backend/test_backend.py
+        run: python -m py_compile ai-router/backend/server.py ai-router/backend/store.py ai-router/backend/providers.py ai-router/backend/backup.py ai-router/backend/test_backend.py
 
       - name: Run backend persistence and API tests
         run: python -m unittest discover -s ai-router/backend -p "test_*.py" -v
