@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from unittest.mock import patch
 
 import server as api
 from store import Store, StoreError
@@ -141,6 +142,25 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(simulated["record"]["status"], "simulated")
         self.assertFalse(simulated["real_execution"])
+
+    def test_provider_diagnostic_uses_local_metadata_probe(self):
+        expected = {
+            "provider": "ollama",
+            "available": True,
+            "endpoint": "http://127.0.0.1:11434/api/tags",
+            "model_count": 1,
+            "models": [{"name": "tiny-model", "size_bytes": 123, "parameter_size": "small", "quantization": "Q4", "family": "test"}],
+            "model_calls": 0,
+            "downloads_started": 0,
+        }
+        with patch.object(api, "probe_ollama", return_value=expected) as probe:
+            status, result = self.request_json("/api/providers")
+        self.assertEqual(status, 200)
+        self.assertEqual(result["ollama"]["models"][0]["name"], "tiny-model")
+        self.assertEqual(result["ollama"]["model_calls"], 0)
+        self.assertEqual(result["ollama"]["downloads_started"], 0)
+        self.assertFalse(result["paid_providers_enabled"])
+        probe.assert_called_once_with()
 
     def test_foreign_origin_is_rejected(self):
         request = Request(
