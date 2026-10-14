@@ -14,7 +14,7 @@
       <h1>AI Router Studio</h1>
       <p>یک درخواست خام را به طرح شفاف، کم‌هزینه و قابل تأیید تبدیل کن.</p>
     </div>
-    <div class="status-pill"><span></span> نمونه اولیه • بدون فراخوانی API</div>
+    <div id="backendStatus" class="status-pill"><span></span><span id="backendStatusText">در حال بررسی Backend محلی...</span></div>
   </header>
 
   <main class="layout">
@@ -49,7 +49,7 @@
       <div class="panel-head">
         <div>
           <h2>۲. Preview قبل از ساخت</h2>
-          <p>این نسخه فقط Preview و شبیه‌سازی دارد؛ هنوز به مدل واقعی متصل نیست.</p>
+          <p>این نسخه طرح را در SQLite محلی ذخیره می‌کند؛ هنوز به مدل AI متصل نیست.</p>
         </div>
         <span id="planStatus" class="status-text">در انتظار درخواست</span>
       </div>
@@ -85,9 +85,20 @@
       <div id="taskList" class="task-list"></div>
       <div class="final-box" id="finalBox"></div>
     </section>
+
+    <section class="panel history-panel" id="historyPanel">
+      <div class="panel-head">
+        <div>
+          <h2>۴. تاریخچه پروژه</h2>
+          <p>طرح‌ها و وضعیت تأیید/شبیه‌سازی در دیتابیس محلی ثبت می‌شوند.</p>
+        </div>
+        <span class="status-text">SQLite</span>
+      </div>
+      <div id="historyList"><p class="history-empty">در حال بررسی ذخیره‌سازی محلی...</p></div>
+    </section>
   </main>
 
-  <footer>AI Router Studio v1 • Preview + Approval Gate • Demo only</footer>
+  <footer>AI Router Studio v1 • Local SQLite + Approval Gate • AI execution not connected</footer>
   <script src="core.js"></script>
   <script src="app.js"></script>
 </body>
