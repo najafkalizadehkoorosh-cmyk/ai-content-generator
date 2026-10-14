@@ -60,3 +60,25 @@ test("provider recommendations remain unverified rather than promising free quot
   assert.ok(plan.tasks.every((task) => /هنوز متصل|باید بررسی شود/.test(task.provider)));
   assert.equal(plan.costPolicy, "zero-cost-only");
 });
+
+test("static UI references exist and planner core loads before the UI controller", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../app.js"), "utf8");
+
+  const requiredIds = [
+    "requestInput", "quality", "tokenMode", "budget", "planBtn", "validation",
+    "emptyState", "planView", "approvalBar", "approveBtn", "editBtn",
+    "executionPanel", "executionStatus", "taskList", "finalBox", "exampleBtn", "planStatus"
+  ];
+  for (const id of requiredIds) {
+    assert.match(html, new RegExp('id="' + id + '"'), "missing HTML id: " + id);
+    assert.ok(app.includes('$("' + "#" + id + '")'), "app.js does not reference expected id: " + id);
+  }
+
+  const coreScript = html.indexOf('<script src="core.js"></script>');
+  const appScript = html.indexOf('<script src="app.js"></script>');
+  assert.ok(coreScript >= 0, "core.js script tag is missing");
+  assert.ok(appScript > coreScript, "core.js must load before app.js");
+});
