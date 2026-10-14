@@ -12,9 +12,9 @@
     <div>
       <div class="eyebrow">AI PROJECT ORCHESTRATOR • V1</div>
       <h1>AI Router Studio</h1>
-      <p>یک درخواست خام را به برنامهٔ اجرایی دقیق، کم‌هزینه و قابل تأیید تبدیل کن.</p>
+      <p>یک درخواست خام را به طرح شفاف، کم‌هزینه و قابل تأیید تبدیل کن.</p>
     </div>
-    <div class="status-pill"><span></span> حالت صفر تومان</div>
+    <div class="status-pill"><span></span> نمونه اولیه • بدون فراخوانی API</div>
   </header>
 
   <main class="layout">
@@ -49,7 +49,7 @@
       <div class="panel-head">
         <div>
           <h2>۲. Preview قبل از ساخت</h2>
-          <p>هیچ عملیات ساخت مهمی قبل از تأیید تو اجرا نمی‌شود.</p>
+          <p>این نسخه فقط Preview و شبیه‌سازی دارد؛ هنوز به مدل واقعی متصل نیست.</p>
         </div>
         <span id="planStatus" class="status-text">در انتظار درخواست</span>
       </div>
@@ -64,12 +64,12 @@
 
       <div id="approvalBar" class="approval-bar hidden">
         <div>
-          <strong>آماده اجراست.</strong>
-          <span>تأیید تو به معنی اجازه برای ورود به مرحله اجراست.</span>
+          <strong>طرح آماده تأیید است.</strong>
+          <span>تأییدت فقط شبیه‌سازی این طرح را اجرا می‌کند؛ خروجی واقعی تولید نمی‌شود.</span>
         </div>
         <div class="approval-actions">
           <button id="editBtn" class="ghost-btn">برگشت و ویرایش</button>
-          <button id="approveBtn" class="primary-btn">تأیید و شروع اجرا</button>
+          <button id="approveBtn" class="primary-btn">تأیید و اجرای آزمایشی</button>
         </div>
       </div>
     </section>
@@ -78,7 +78,7 @@
       <div class="panel-head">
         <div>
           <h2>۳. اجرای Taskها</h2>
-          <p>Taskها فقط پس از تأیید تو اجرا می‌شوند.</p>
+          <p>در این نسخه، وضعیت Taskها فقط شبیه‌سازی می‌شود.</p>
         </div>
         <span id="executionStatus" class="status-text">آماده</span>
       </div>
@@ -87,7 +87,7 @@
     </section>
   </main>
 
-  <footer>AI Router Studio v1 • Prompt Compiler + Task Planner + Approval Gate + Token Saver</footer>
+  <footer>AI Router Studio v1 • Preview + Approval Gate • Demo only</footer>
   <script src="app.js"></script>
 </body>
 </html>
