@@ -10,6 +10,7 @@ from providers import (
     MAX_GENERATION_RESPONSE_BYTES,
     ProviderError,
     generate_local_response,
+    probe_ollama,
 )
 
 
@@ -49,6 +50,24 @@ class OllamaGenerationTests(unittest.TestCase):
         self.assertEqual(result["output_tokens"], 5)
         self.assertEqual(result["duration_ms"], 1234)
         self.assertTrue(result["done"])
+
+    def test_cloud_model_is_blocked_before_any_request(self):
+        with self.assertRaisesRegex(ProviderError, "مدل‌های ابری"):
+            generate_local_response("glm-5.1:cloud", "hello")
+        self.opener.open.assert_not_called()
+
+    def test_probe_marks_cloud_and_local_models_explicitly(self):
+        self.response.read.return_value = json.dumps({
+            "models": [
+                {"name": "glm-5.1:cloud", "size": 0, "details": {}},
+                {"name": "qwen3:4b-instruct", "size": 123, "details": {"family": "qwen3"}},
+            ]
+        }).encode("utf-8")
+        result = probe_ollama()
+        models = {item["name"]: item for item in result["models"]}
+        self.assertTrue(models["glm-5.1:cloud"]["is_cloud"])
+        self.assertFalse(models["qwen3:4b-instruct"]["is_cloud"])
+        self.opener.open.assert_called_once()
 
     def test_oversized_prompt_is_rejected_before_any_local_request(self):
         with self.assertRaises(ProviderError):

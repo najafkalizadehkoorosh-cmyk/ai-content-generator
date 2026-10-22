@@ -206,6 +206,25 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(runs["runs"][0]["output_text"], "پاسخ متنی واقعی مدل")
         self.assertEqual(api.STORE.get_workspace()["recent_plans"][0]["agent_status"], "succeeded")
 
+    def test_agent_execution_rejects_cloud_model_even_if_requested_directly(self):
+        self.request_json("/api/workspace")
+        _, created = self.request_json("/api/plans", {
+            "project_id": "default", "fingerprint": '{"request":"stable"}', "plan": sample_plan(),
+        })
+        plan_id = created["record"]["id"]
+        self.request_json(f"/api/plans/{plan_id}/approve", {"fingerprint": '{"request":"stable"}'})
+        with patch.object(api, "probe_ollama") as probe, patch.object(
+            api, "generate_local_response"
+        ) as generate:
+            with self.assertRaises(HTTPError) as caught:
+                self.request_json(f"/api/plans/{plan_id}/execute", {
+                    "fingerprint": '{"request":"stable"}', "model": "glm-5.1:cloud",
+                })
+        self.assertEqual(caught.exception.code, 403)
+        probe.assert_not_called()
+        generate.assert_not_called()
+        self.assertEqual(api.STORE.get_agent_runs(plan_id), [])
+
     def test_agent_execution_rejects_model_not_in_local_inventory(self):
         self.request_json("/api/workspace")
         _, created = self.request_json("/api/plans", {
