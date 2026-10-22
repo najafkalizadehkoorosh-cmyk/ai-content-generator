@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
         self.store = EventStore(DATA_DIR / "events.db", EVENTS_DIR)
         self.cameras: dict[str, CameraWorker] = {}
         self.cards: dict[str, CameraCard] = {}
-        self.camera_counter = 0
+        self.camera_counter = 1
         self._build_ui()
         self.detector = DetectorWorker(self.store, self.settings, self)
         self.detector.status_changed.connect(self.set_global_status)
@@ -145,6 +145,8 @@ class MainWindow(QMainWindow):
         for item in reversed(self.store.recent(80)):
             self.add_event(item, update_counter=False)
         self.update_counters()
+        # Start the default local webcam so a fresh installation is usable immediately.
+        self.add_camera("دوربین 1", "0")
 
     def _build_ui(self):
         root = QWidget()
