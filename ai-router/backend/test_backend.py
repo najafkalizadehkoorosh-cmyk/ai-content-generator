@@ -112,6 +112,20 @@ class ApiTests(unittest.TestCase):
         with urlopen(request, timeout=3) as response:
             return response.status, json.loads(response.read().decode("utf-8"))
 
+    def test_static_ui_and_all_scripts_are_served(self):
+        status, result = self.request_json("/api/health")
+        self.assertEqual(status, 200)
+        request = Request(self.base + "/", method="GET")
+        with urlopen(request, timeout=3) as response:
+            html = response.read().decode("utf-8")
+            self.assertEqual(response.status, 200)
+            self.assertIn("text/html", response.headers.get("Content-Type", ""))
+        self.assertIn('src="agent-ui.js"', html)
+        for path in ("/style.css", "/core.js", "/app.js", "/agent-ui.js"):
+            with urlopen(self.base + path, timeout=3) as response:
+                self.assertEqual(response.status, 200, path)
+                self.assertGreater(int(response.headers.get("Content-Length", "0")), 0, path)
+
     def test_health_marks_ai_disconnected_and_paid_providers_disabled(self):
         status, result = self.request_json("/api/health")
         self.assertEqual(status, 200)

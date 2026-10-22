@@ -25,6 +25,7 @@ ALLOWED_STATIC = {
     "/style.css": APP_DIR / "style.css",
     "/core.js": APP_DIR / "core.js",
     "/app.js": APP_DIR / "app.js",
+    "/agent-ui.js": APP_DIR / "agent-ui.js",
 }
 PLAN_ID_RE = re.compile(r"^/api/plans/([0-9a-f-]{36})(?:/(approve|simulation|execute|runs))?$", re.I)
 STORE = Store(DB_PATH)
