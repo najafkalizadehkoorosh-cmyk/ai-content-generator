@@ -1,7 +1,9 @@
 """Local-only SQLite event history."""
 from __future__ import annotations
+
 import sqlite3
 import threading
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +15,9 @@ class EventStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.events_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
-        with self._connect() as conn:
+        # sqlite3.Connection's context manager commits/rolls back but does not close.
+        # Combine it with closing() so temporary databases can be deleted on Windows.
+        with closing(self._connect()) as conn, conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +36,7 @@ class EventStore:
         return conn
 
     def add(self, event: dict[str, Any]) -> int:
-        with self._lock, self._connect() as conn:
+        with self._lock, closing(self._connect()) as conn, conn:
             cursor = conn.execute(
                 "INSERT INTO events(timestamp,camera_name,issue,confidence,image_path) VALUES(?,?,?,?,?)",
                 (event["timestamp"], event["camera_name"], event["issue"],
@@ -41,7 +45,7 @@ class EventStore:
             return int(cursor.lastrowid)
 
     def recent(self, limit: int = 100) -> list[dict[str, Any]]:
-        with self._lock, self._connect() as conn:
+        with self._lock, closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 "SELECT id,timestamp,camera_name,issue,confidence,image_path FROM events ORDER BY id DESC LIMIT ?",
                 (max(1, min(int(limit), 1000)),)
@@ -49,6 +53,6 @@ class EventStore:
         return [dict(row) for row in rows]
 
     def count(self) -> int:
-        with self._lock, self._connect() as conn:
+        with self._lock, closing(self._connect()) as conn, conn:
             row = conn.execute("SELECT COUNT(*) AS n FROM events").fetchone()
         return int(row["n"])
