@@ -87,9 +87,9 @@ jobs:
           gh release view $tag --json url *> $null
           $releaseExists = ($LASTEXITCODE -eq 0)
           if ($releaseExists) {
-            gh release upload $tag "SafetyVision-Offline/dist/SafetyVision-Windows-x64.zip" --clobber
+            gh release upload $tag "dist/SafetyVision-Windows-x64.zip" --clobber
             if ($LASTEXITCODE -ne 0) { throw "Failed to update release asset." }
           } else {
-            gh release create $tag "SafetyVision-Offline/dist/SafetyVision-Windows-x64.zip" --title "SafetyVision Offline - Windows x64" --notes "Self-contained Windows x64 build. Extract the ZIP and open SafetyVision.exe. The model is included; do not rely on this software as the only workplace safety control." --target $env:GITHUB_SHA --prerelease
+            gh release create $tag "dist/SafetyVision-Windows-x64.zip" --title "SafetyVision Offline - Windows x64" --notes "Self-contained Windows x64 build. Extract the ZIP and open SafetyVision.exe. The model is included; do not rely on this software as the only workplace safety control." --target $env:GITHUB_SHA --prerelease
             if ($LASTEXITCODE -ne 0) { throw "Failed to create GitHub release." }
           }
