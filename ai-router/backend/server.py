@@ -5,11 +5,12 @@ import json
 import mimetypes
 import os
 import re
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from providers import probe_ollama
+from providers import ProviderError, generate_local_response, probe_ollama
 from store import Store, StoreError
 
 APP_DIR = Path(__file__).resolve().parents[1]
@@ -25,7 +26,7 @@ ALLOWED_STATIC = {
     "/core.js": APP_DIR / "core.js",
     "/app.js": APP_DIR / "app.js",
 }
-PLAN_ID_RE = re.compile(r"^/api/plans/([0-9a-f-]{36})(?:/(approve|simulation))?$", re.I)
+PLAN_ID_RE = re.compile(r"^/api/plans/([0-9a-f-]{36})(?:/(approve|simulation|execute|runs))?$", re.I)
 STORE = Store(DB_PATH)
 
 
@@ -170,6 +171,9 @@ class RouterHandler(BaseHTTPRequestHandler):
             if matched and matched.group(2) is None:
                 self._send_json(200, {"record": STORE.get_plan(matched.group(1))})
                 return
+            if matched and matched.group(2) == "runs":
+                self._send_json(200, {"runs": STORE.get_agent_runs(matched.group(1))})
+                return
         except StoreError as exc:
             self._send_error_json(exc.status_code, exc.code, str(exc))
             return
@@ -202,6 +206,71 @@ class RouterHandler(BaseHTTPRequestHandler):
                 if action == "simulation":
                     record = STORE.mark_simulated(plan_id)
                     self._send_json(200, {"record": record, "real_execution": False})
+                    return
+                if action == "execute":
+                    fingerprint = body.get("fingerprint")
+                    model = body.get("model")
+                    if not isinstance(fingerprint, str) or not fingerprint or len(fingerprint) > 12000:
+                        raise StoreError("INVALID_FINGERPRINT", "اثر انگشت Preview معتبر نیست.", 400)
+                    if not isinstance(model, str) or not model.strip() or len(model) > 160:
+                        raise StoreError("INVALID_MODEL", "یک مدل محلی معتبر انتخاب کن.", 400)
+                    existing = STORE.get_plan(plan_id)
+                    if existing["fingerprint"] != fingerprint:
+                        raise StoreError("PLAN_FINGERPRINT_MISMATCH", "ورودی‌ها با Preview تأییدشده مطابقت ندارند؛ Preview تازه بساز.", 409)
+                    if existing["status"] != "approved":
+                        raise StoreError("INVALID_PLAN_STATE", "اجرای ایجنت فقط پس از تأیید صریح Preview مجاز است.", 409)
+                    plan = existing["plan"]
+                    if plan.get("budget") != "zero" or plan.get("costPolicy") != "zero-cost-only":
+                        raise StoreError("BUDGET_POLICY_REJECTED", "اجرای Provider با سیاست صفرهزینه مجاز نیست.", 403)
+                    goal = plan.get("goal")
+                    if not isinstance(goal, str) or not 1 <= len(goal) <= 20000:
+                        raise StoreError("INVALID_GOAL", "متن درخواست برای اجرای مدل معتبر نیست.", 400)
+                    diagnostic = probe_ollama()
+                    if not diagnostic.get("available"):
+                        raise StoreError("OLLAMA_UNAVAILABLE", "Ollama پاسخ نمی‌دهد؛ هیچ سرویس ابری دیگری فراخوانی نشد.", 503)
+                    installed_names = {
+                        item.get("name") for item in diagnostic.get("models", [])
+                        if isinstance(item, dict) and isinstance(item.get("name"), str)
+                    }
+                    if model not in installed_names:
+                        raise StoreError("MODEL_NOT_INSTALLED", "این مدل در فهرست مدل‌های نصب‌شده نیست؛ چیزی دانلود نشد.", 409)
+                    run = STORE.start_agent_run(plan_id, fingerprint, model, len(goal))
+                    started = time.monotonic()
+                    system_prompt = (
+                        "تو یک ایجنت متنی محلی هستی. به زبان درخواست کاربر پاسخ مفید و ساخت‌یافته بده. "
+                        "فقط همین پاسخ متنی را تولید کن. وانمود نکن وب‌گردی کرده‌ای، منبع زنده را بررسی کرده‌ای، "
+                        "فایلی را باز یا تغییر داده‌ای، کدی را اجرا کرده‌ای، تصویری ساخته‌ای یا کاری بیرون از مدل انجام داده‌ای. "
+                        "اگر درخواست به ابزارهای در دسترس‌نبوده نیاز دارد، محدودیت را روشن بگو و یک پیش‌نویس مفید ارائه کن. "
+                        "زنجیره استدلال پنهان را افشا نکن؛ نتیجه و توضیح کوتاه ارائه کن."
+                    )
+                    try:
+                        generated = generate_local_response(model, goal, system_prompt=system_prompt, timeout=90.0)
+                        response_text = generated.get("response")
+                        if not isinstance(response_text, str) or not response_text.strip():
+                            raise ProviderError("مدل پاسخ متنی معتبری تولید نکرد.")
+                        elapsed_ms = max(0, int((time.monotonic() - started) * 1000))
+                        record = STORE.finish_agent_run(
+                            run["id"], "succeeded", output_text=response_text,
+                            prompt_tokens=generated.get("prompt_tokens", 0),
+                            output_tokens=generated.get("output_tokens", 0),
+                            duration_ms=generated.get("duration_ms", elapsed_ms) or elapsed_ms,
+                        )
+                        self._send_json(200, {"record": record, "real_execution": True})
+                    except ProviderError as exc:
+                        elapsed_ms = max(0, int((time.monotonic() - started) * 1000))
+                        record = STORE.finish_agent_run(run["id"], "failed", error_message=str(exc), duration_ms=elapsed_ms)
+                        self._send_json(502, {
+                            "error": {"code": "MODEL_EXECUTION_FAILED", "message": str(exc)},
+                            "record": record, "real_execution": True,
+                        })
+                    except Exception:
+                        elapsed_ms = max(0, int((time.monotonic() - started) * 1000))
+                        STORE.finish_agent_run(
+                            run["id"], "failed",
+                            error_message="خطای داخلی هنگام پردازش پاسخ مدل؛ موفقیت ثبت نشد.",
+                            duration_ms=elapsed_ms,
+                        )
+                        self._send_error_json(500, "AGENT_INTERNAL_ERROR", "خطای داخلی هنگام پردازش پاسخ مدل؛ موفقیت ثبت نشد.")
                     return
             self._send_error_json(404, "NOT_FOUND", "مسیر پیدا نشد.")
         except StoreError as exc:

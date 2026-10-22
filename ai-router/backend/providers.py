@@ -90,3 +90,92 @@ def probe_ollama(timeout: float = 1.5) -> dict[str, Any]:
             "model_calls": 0,
             "downloads_started": 0,
         }
+
+
+class ProviderError(Exception):
+    """Sanitized provider failure safe to show in the local UI."""
+
+
+MAX_GENERATION_RESPONSE_BYTES = 2_000_000
+MAX_PROMPT_CHARS = 20_000
+MAX_OUTPUT_CHARS = 200_000
+
+
+def generate_local_response(
+    model: str,
+    prompt: str,
+    system_prompt: str = "",
+    timeout: float = 90.0,
+) -> dict[str, Any]:
+    """Generate one text response using an already-installed local Ollama model.
+
+    The caller must verify the exact model name against probe_ollama() first.
+    This function never downloads models, calls cloud providers, or uses tools.
+    """
+    if not isinstance(model, str) or not model.strip() or len(model) > 160:
+        raise ProviderError("نام مدل محلی معتبر نیست.")
+    if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > MAX_PROMPT_CHARS:
+        raise ProviderError("متن درخواست خالی است یا از سقف ۲۰۰۰۰ نویسه بیشتر است.")
+    if not isinstance(system_prompt, str) or len(system_prompt) > 8_000:
+        raise ProviderError("دستور داخلی مدل معتبر نیست.")
+    try:
+        request_timeout = max(1.0, min(float(timeout), 120.0))
+    except (TypeError, ValueError):
+        request_timeout = 90.0
+
+    messages = []
+    if system_prompt.strip():
+        messages.append({"role": "system", "content": system_prompt.strip()})
+    messages.append({"role": "user", "content": prompt})
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "options": {"temperature": 0.2, "num_predict": 1200},
+    }
+    request = urllib.request.Request(
+        "http://127.0.0.1:11434/api/chat",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "AI-Router-Local-Agent/1.0",
+        },
+        method="POST",
+    )
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(request, timeout=request_timeout) as response:
+            raw = response.read(MAX_GENERATION_RESPONSE_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        raise ProviderError(f"Ollama API پاسخ HTTP {exc.code} داد؛ اجرای مدل کامل نشد.") from None
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise ProviderError(
+            "اتصال به Ollama برقرار نشد یا زمان اجرای مدل تمام شد؛ وضعیت سرویس و مدل را بررسی کن."
+        ) from None
+
+    if len(raw) > MAX_GENERATION_RESPONSE_BYTES:
+        raise ProviderError("پاسخ مدل از سقف اندازه مجاز بیشتر بود و ذخیره نشد.")
+    try:
+        result = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ProviderError("Ollama پاسخ JSON معتبر برنگرداند.") from None
+
+    message = result.get("message") if isinstance(result, dict) else None
+    response_text = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(response_text, str) or not response_text.strip():
+        raise ProviderError("مدل پاسخ متنی معتبری تولید نکرد.")
+    response_text = response_text[:MAX_OUTPUT_CHARS]
+
+    def safe_count(value: object) -> int:
+        return value if isinstance(value, int) and 0 <= value <= 10**12 else 0
+
+    duration_ns = safe_count(result.get("total_duration", 0))
+    return {
+        "model": model,
+        "response": response_text,
+        "prompt_tokens": safe_count(result.get("prompt_eval_count", 0)),
+        "output_tokens": safe_count(result.get("eval_count", 0)),
+        "duration_ms": duration_ns // 1_000_000,
+        "done": result.get("done") is True,
+    }

@@ -143,6 +143,73 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(simulated["record"]["status"], "simulated")
         self.assertFalse(simulated["real_execution"])
 
+    def test_agent_execution_rejects_unapproved_plan_without_calling_model(self):
+        self.request_json("/api/workspace")
+        _, created = self.request_json("/api/plans", {
+            "project_id": "default", "fingerprint": '{"request":"stable"}', "plan": sample_plan(),
+        })
+        plan_id = created["record"]["id"]
+        diagnostic = {"available": True, "models": [{"name": "tiny-model"}]}
+        with patch.object(api, "probe_ollama", return_value=diagnostic), patch.object(
+            api, "generate_local_response"
+        ) as generate:
+            with self.assertRaises(HTTPError) as caught:
+                self.request_json(f"/api/plans/{plan_id}/execute", {
+                    "fingerprint": '{"request":"stable"}', "model": "tiny-model",
+                })
+        self.assertEqual(caught.exception.code, 409)
+        generate.assert_not_called()
+        self.assertEqual(api.STORE.get_agent_runs(plan_id), [])
+
+    def test_approved_agent_execution_persists_real_text_and_usage(self):
+        self.request_json("/api/workspace")
+        _, created = self.request_json("/api/plans", {
+            "project_id": "default", "fingerprint": '{"request":"stable"}', "plan": sample_plan(),
+        })
+        plan_id = created["record"]["id"]
+        self.request_json(f"/api/plans/{plan_id}/approve", {"fingerprint": '{"request":"stable"}'})
+        diagnostic = {"available": True, "models": [{"name": "tiny-model"}]}
+        generated = {
+            "model": "tiny-model", "response": "پاسخ متنی واقعی مدل",
+            "prompt_tokens": 25, "output_tokens": 12, "duration_ms": 220, "done": True,
+        }
+        with patch.object(api, "probe_ollama", return_value=diagnostic), patch.object(
+            api, "generate_local_response", return_value=generated
+        ) as generate:
+            status, response = self.request_json(f"/api/plans/{plan_id}/execute", {
+                "fingerprint": '{"request":"stable"}', "model": "tiny-model",
+            })
+        self.assertEqual(status, 200)
+        self.assertTrue(response["real_execution"])
+        self.assertEqual(response["record"]["status"], "succeeded")
+        self.assertEqual(response["record"]["output_text"], "پاسخ متنی واقعی مدل")
+        self.assertEqual(response["record"]["model"], "tiny-model")
+        self.assertEqual(response["record"]["prompt_tokens"], 25)
+        self.assertEqual(response["record"]["output_tokens"], 12)
+        generate.assert_called_once()
+        self.assertEqual(api.STORE.get_agent_runs(plan_id)[0]["status"], "succeeded")
+        _, runs = self.request_json(f"/api/plans/{plan_id}/runs")
+        self.assertEqual(runs["runs"][0]["output_text"], "پاسخ متنی واقعی مدل")
+        self.assertEqual(api.STORE.get_workspace()["recent_plans"][0]["agent_status"], "succeeded")
+
+    def test_agent_execution_rejects_model_not_in_local_inventory(self):
+        self.request_json("/api/workspace")
+        _, created = self.request_json("/api/plans", {
+            "project_id": "default", "fingerprint": '{"request":"stable"}', "plan": sample_plan(),
+        })
+        plan_id = created["record"]["id"]
+        self.request_json(f"/api/plans/{plan_id}/approve", {"fingerprint": '{"request":"stable"}'})
+        with patch.object(api, "probe_ollama", return_value={
+            "available": True, "models": [{"name": "other-model"}]
+        }), patch.object(api, "generate_local_response") as generate:
+            with self.assertRaises(HTTPError) as caught:
+                self.request_json(f"/api/plans/{plan_id}/execute", {
+                    "fingerprint": '{"request":"stable"}', "model": "not-installed",
+                })
+        self.assertEqual(caught.exception.code, 409)
+        generate.assert_not_called()
+        self.assertEqual(api.STORE.get_agent_runs(plan_id), [])
+
     def test_provider_diagnostic_uses_local_metadata_probe(self):
         expected = {
             "provider": "ollama",
