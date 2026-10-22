@@ -1,0 +1,95 @@
+name: Build SafetyVision Windows download
+on:
+  push:
+    branches:
+      - safetyvision-offline
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: SafetyVision-Offline
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: "x64"
+          cache: pip
+          cache-dependency-path: SafetyVision-Offline/requirements.txt
+
+      - name: Install CPU-only PyTorch
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install application and packaging dependencies
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Download model into package
+        run: python setup_model.py
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build self-contained Windows application
+        run: >
+          python -m PyInstaller --noconfirm --clean --windowed --onedir
+          --name SafetyVision
+          --add-data "data/models/best.pt;data/models"
+          --collect-all ultralytics
+          --collect-all cv2
+          --hidden-import ultralytics.nn.tasks
+          --hidden-import ultralytics.nn.modules
+          --hidden-import torch
+          app.py
+
+      - name: Add launch instructions and create download ZIP
+        shell: pwsh
+        run: |
+          @"
+          SafetyVision Offline - Windows x64
+
+          1. Extract the whole ZIP with Windows "Extract All".
+          2. Open SafetyVision.exe.
+          3. The app attempts to connect to webcam 0 automatically.
+          4. Use "افزودن دوربین" to add more webcams or valid RTSP camera streams.
+
+          The AI model is included in this package. No Python installation or first-run model download is required.
+          Images and event history are stored locally under %LOCALAPPDATA%\SafetyVisionOffline\data.
+          This tool is an aid only; validate alerts manually and do not use it as the sole safety control.
+          "@ | Set-Content -Path "dist/SafetyVision/START_HERE.txt" -Encoding UTF8
+          Compress-Archive -Path "dist/SafetyVision/*" -DestinationPath "dist/SafetyVision-Windows-x64.zip" -CompressionLevel Optimal
+
+      - name: Keep ZIP as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafetyVision-Windows-x64
+          path: SafetyVision-Offline/dist/SafetyVision-Windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish or update the stable download release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "safetyvision-offline-latest"
+          gh release view $tag --json url *> $null
+          $releaseExists = ($LASTEXITCODE -eq 0)
+          if ($releaseExists) {
+            gh release upload $tag "SafetyVision-Offline/dist/SafetyVision-Windows-x64.zip" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "Failed to update release asset." }
+          } else {
+            gh release create $tag "SafetyVision-Offline/dist/SafetyVision-Windows-x64.zip" --title "SafetyVision Offline - Windows x64" --notes "Self-contained Windows x64 build. Extract the ZIP and open SafetyVision.exe. The model is included; do not rely on this software as the only workplace safety control." --target $env:GITHUB_SHA --prerelease
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create GitHub release." }
+          }
