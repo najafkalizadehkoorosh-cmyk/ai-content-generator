@@ -1,16 +1,48 @@
-"""Application paths and settings."""
+"""Application paths and settings that work both from source and from a packaged Windows build."""
 from __future__ import annotations
+
 import json
 import os
+import shutil
+import sys
 from pathlib import Path
 
-APP_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("SAFETYVISION_DATA_DIR", APP_DIR / "data")).expanduser().resolve()
+FROZEN = bool(getattr(sys, "frozen", False))
+if FROZEN:
+    APP_DIR = Path(sys.executable).resolve().parent
+    default_data_root = Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))) / "SafetyVisionOffline" / "data"
+else:
+    APP_DIR = Path(__file__).resolve().parent.parent
+    default_data_root = APP_DIR / "data"
+
+DATA_DIR = Path(os.environ.get("SAFETYVISION_DATA_DIR", str(default_data_root))).expanduser().resolve()
 MODEL_DIR = DATA_DIR / "models"
 MODEL_PATH = MODEL_DIR / "best.pt"
 EVENTS_DIR = DATA_DIR / "events"
 DB_PATH = DATA_DIR / "events.db"
 SETTINGS_PATH = DATA_DIR / "settings.json"
+
+
+def _install_bundled_model() -> None:
+    """Copy the model shipped inside the Windows package to a persistent writable folder."""
+    if MODEL_PATH.is_file():
+        return
+    bundled_roots = []
+    frozen_root = getattr(sys, "_MEIPASS", None)
+    if frozen_root:
+        bundled_roots.append(Path(frozen_root) / "data" / "models" / "best.pt")
+    bundled_roots.append(APP_DIR / "data" / "models" / "best.pt")
+    source = next((candidate for candidate in bundled_roots if candidate.is_file()), None)
+    if source is not None:
+        try:
+            MODEL_DIR.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, MODEL_PATH)
+        except OSError:
+            # DetectorWorker will show a clear message if model installation fails.
+            pass
+
+
+_install_bundled_model()
 
 DEFAULT_SETTINGS = {
     "confidence": 0.45,
