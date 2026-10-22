@@ -48,8 +48,10 @@ def probe_ollama(timeout: float = 1.5) -> dict[str, Any]:
             size = item.get("size", 0)
             if not isinstance(size, int) or size < 0:
                 size = 0
+            is_cloud = name.strip().lower().endswith(":cloud")
             models.append({
                 "name": name[:160],
+                "is_cloud": is_cloud,
                 "size_bytes": size,
                 "parameter_size": str(details.get("parameter_size", ""))[:40],
                 "quantization": str(details.get("quantization_level", ""))[:40],
@@ -114,6 +116,8 @@ def generate_local_response(
     """
     if not isinstance(model, str) or not model.strip() or len(model) > 160:
         raise ProviderError("نام مدل محلی معتبر نیست.")
+    if model.strip().lower().endswith(":cloud"):
+        raise ProviderError("مدل‌های ابری در نسخه صفرهزینه غیرفعال‌اند؛ یک مدل محلی انتخاب کن.")
     if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > MAX_PROMPT_CHARS:
         raise ProviderError("متن درخواست خالی است یا از سقف ۲۰۰۰۰ نویسه بیشتر است.")
     if not isinstance(system_prompt, str) or len(system_prompt) > 8_000:

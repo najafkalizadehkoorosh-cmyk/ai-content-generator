@@ -215,6 +215,12 @@ class RouterHandler(BaseHTTPRequestHandler):
                         raise StoreError("INVALID_FINGERPRINT", "اثر انگشت Preview معتبر نیست.", 400)
                     if not isinstance(model, str) or not model.strip() or len(model) > 160:
                         raise StoreError("INVALID_MODEL", "یک مدل محلی معتبر انتخاب کن.", 400)
+                    if model.strip().lower().endswith(":cloud"):
+                        raise StoreError(
+                            "CLOUD_MODEL_DISABLED",
+                            "مدل‌های ابری در نسخه صفرهزینه مجاز نیستند؛ یک مدل محلی انتخاب کن.",
+                            403,
+                        )
                     existing = STORE.get_plan(plan_id)
                     if existing["fingerprint"] != fingerprint:
                         raise StoreError("PLAN_FINGERPRINT_MISMATCH", "ورودی‌ها با Preview تأییدشده مطابقت ندارند؛ Preview تازه بساز.", 409)
@@ -231,7 +237,10 @@ class RouterHandler(BaseHTTPRequestHandler):
                         raise StoreError("OLLAMA_UNAVAILABLE", "Ollama پاسخ نمی‌دهد؛ هیچ سرویس ابری دیگری فراخوانی نشد.", 503)
                     installed_names = {
                         item.get("name") for item in diagnostic.get("models", [])
-                        if isinstance(item, dict) and isinstance(item.get("name"), str)
+                        if isinstance(item, dict)
+                        and isinstance(item.get("name"), str)
+                        and item.get("is_cloud") is not True
+                        and not item.get("name", "").strip().lower().endswith(":cloud")
                     }
                     if model not in installed_names:
                         raise StoreError("MODEL_NOT_INSTALLED", "این مدل در فهرست مدل‌های نصب‌شده نیست؛ چیزی دانلود نشد.", 409)
