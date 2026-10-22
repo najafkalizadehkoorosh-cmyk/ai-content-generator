@@ -67,17 +67,24 @@
     try {
       const result = await api("/api/providers");
       const diagnostic = result.ollama || {};
-      state.models = diagnostic.available && Array.isArray(diagnostic.models)
+      const detected = diagnostic.available && Array.isArray(diagnostic.models)
         ? diagnostic.models.filter((item) => item && typeof item.name === "string" && item.name.trim())
         : [];
+      const isCloud = (item) => item.is_cloud === true || item.name.toLowerCase().endsWith(":cloud");
+      const cloudCount = detected.filter(isCloud).length;
+      state.models = detected.filter((item) => !isCloud(item));
       const previous = modelSelect.value;
       modelSelect.replaceChildren();
       if (!state.models.length) {
         const option = document.createElement("option");
         option.value = "";
-        option.textContent = diagnostic.message || "مدل محلی نصب‌شده پیدا نشد";
+        option.textContent = cloudCount
+          ? "فقط مدل ابری شناسایی شد؛ برای نسخه صفرهزینه مدل محلی لازم است."
+          : (diagnostic.message || "مدل محلی نصب‌شده پیدا نشد");
         modelSelect.appendChild(option);
-        modelHelp.textContent = "Ollama یا مدل نصب‌شده در دسترس نیست؛ هیچ دانلود یا درخواست ابری انجام نشد.";
+        modelHelp.textContent = cloudCount
+          ? "مدل‌های :cloud در اجرای ایجنت مسدودند تا درخواست به سرویس ابری یا اعتبار مصرفی نرود. هیچ مدلی دانلود نشد."
+          : "Ollama یا مدل محلی نصب‌شده در دسترس نیست؛ هیچ دانلود یا درخواست ابری انجام نشد.";
       } else {
         state.models.forEach((model) => {
           const option = document.createElement("option");
@@ -87,7 +94,9 @@
         });
         modelSelect.value = state.models.some((item) => item.name === previous)
           ? previous : state.models[0].name;
-        modelHelp.textContent = "مدل فقط پس از تأیید همین Preview فراخوانی می‌شود؛ دانلود خودکار انجام نمی‌شود.";
+        modelHelp.textContent = cloudCount
+          ? "فقط مدل محلی انتخاب‌پذیر است؛ " + cloudCount + " مدل ابری از ایجنت حذف شده. اجرای مدل فقط پس از تأیید همین Preview انجام می‌شود."
+          : "مدل فقط پس از تأیید همین Preview فراخوانی می‌شود؛ دانلود خودکار انجام نمی‌شود.";
         const status = $("#backendStatusText");
         if (status) status.textContent = "Backend محلی + SQLite فعال • مدل محلی شناسایی شد";
       }

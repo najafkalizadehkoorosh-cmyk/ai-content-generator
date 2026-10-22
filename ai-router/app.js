@@ -130,22 +130,28 @@ function renderProviderResult(diagnostic) {
   }
 
   const models = Array.isArray(diagnostic.models) ? diagnostic.models : [];
+  const isCloud = (model) => model.is_cloud === true ||
+    (typeof model.name === "string" && model.name.trim().toLowerCase().endsWith(":cloud"));
+  const localCount = models.filter((model) => !isCloud(model)).length;
+  const cloudCount = models.length - localCount;
   const modelMarkup = models.map((model) => {
     const details = [model.parameter_size, model.quantization, model.family]
       .filter((item) => typeof item === "string" && item.trim().length > 0)
       .join(" · ");
+    const typeLabel = isCloud(model) ? "ابری • برای نسخه صفرهزینه غیرفعال" : "محلی";
     return '<div class="provider-model"><div><strong>' + esc(model.name) +
       '</strong><small>' + esc(details || "جزئیات مدل اعلام نشده") +
-      '</small></div><span>' + esc(formatModelSize(model.size_bytes)) + '</span></div>';
+      '</small><small class="provider-model-type">' + typeLabel + '</small></div><span>' +
+      esc(formatModelSize(model.size_bytes)) + '</span></div>';
   }).join("");
 
   container.innerHTML = '<div class="provider-state available"><strong>سرویس Ollama پاسخ داد</strong><p>' +
-    esc(diagnostic.message || "فهرست محلی خوانده شد.") + '</p><div class="provider-summary">تعداد مدل‌های محلی: ' +
-    esc(diagnostic.model_count || 0) + '</div>' +
+    esc(diagnostic.message || "فهرست مدل‌ها خوانده شد.") + '</p><div class="provider-summary">مدل محلی قابل استفاده: ' +
+    localCount + ' • مدل ابری شناسایی‌شده: ' + cloudCount + '</div>' +
     (models.length
       ? '<div class="provider-models">' + modelMarkup + '</div>'
-      : '<p class="history-empty">سرویس فعال است، اما مدل محلی‌ای در فهرست نیست.</p>') +
-    '<small>این بررسی فقط GET /api/tags را می‌خواند؛ تعداد درخواست‌های تولید متن: ۰، دانلود جدید: ۰.</small></div>';
+      : '<p class="history-empty">Ollama پاسخ داد، اما مدلی در فهرست نیست.</p>') +
+    '<small>مدل‌های ابری فقط برای آگاهی نمایش داده می‌شوند و از انتخاب ایجنت حذف شده‌اند. این بررسی فقط GET /api/tags را می‌خواند؛ تولید متن: ۰، دانلود جدید: ۰.</small></div>';
 }
 
 async function checkProviders() {
