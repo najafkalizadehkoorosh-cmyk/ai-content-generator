@@ -1,0 +1,8 @@
+[project]
+name = "safetyvision-offline"
+version = "0.1.0"
+description = "Offline multi-camera PPE event review for mask and hardhat detections"
+requires-python = ">=3.11,<3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
