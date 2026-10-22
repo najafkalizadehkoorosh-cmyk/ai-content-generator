@@ -73,6 +73,24 @@ class Store:
                     updated_at TEXT NOT NULL,
                     UNIQUE(plan_id, task_key)
                 );
+                CREATE TABLE IF NOT EXISTS agent_runs (
+                    id TEXT PRIMARY KEY,
+                    plan_id TEXT NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+                    attempt INTEGER NOT NULL,
+                    model TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('running', 'succeeded', 'failed')),
+                    prompt_chars INTEGER NOT NULL DEFAULT 0,
+                    output_text TEXT NOT NULL DEFAULT '',
+                    error_message TEXT NOT NULL DEFAULT '',
+                    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                    output_tokens INTEGER NOT NULL DEFAULT 0,
+                    duration_ms INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(plan_id, attempt)
+                );
+                CREATE INDEX IF NOT EXISTS idx_agent_runs_plan_attempt
+                    ON agent_runs(plan_id, attempt DESC);
                 CREATE TABLE IF NOT EXISTS audit_events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -124,7 +142,9 @@ class Store:
         with closing(self._connect()) as db, db:
             rows = db.execute(
                 """
-                SELECT id, project_id, version, payload_json, status, created_at, updated_at
+                SELECT id, project_id, version, payload_json, status, created_at, updated_at,
+                    (SELECT ar.status FROM agent_runs ar
+                     WHERE ar.plan_id = plans.id ORDER BY ar.attempt DESC LIMIT 1) AS agent_status
                 FROM plans WHERE project_id = ?
                 ORDER BY version DESC LIMIT ?
                 """,
@@ -137,11 +157,86 @@ class Store:
                 "version": row["version"],
                 "title": json.loads(row["payload_json"]).get("title", "بدون عنوان"),
                 "status": row["status"],
+                "agent_status": row["agent_status"],
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
             }
             for row in rows
         ]
+
+    @staticmethod
+    def _agent_run(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"], "plan_id": row["plan_id"], "attempt": row["attempt"],
+            "model": row["model"], "status": row["status"], "prompt_chars": row["prompt_chars"],
+            "output_text": row["output_text"], "error_message": row["error_message"],
+            "prompt_tokens": row["prompt_tokens"], "output_tokens": row["output_tokens"],
+            "duration_ms": row["duration_ms"], "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def start_agent_run(self, plan_id: str, fingerprint: str, model: str, prompt_chars: int) -> dict[str, Any]:
+        now = utc_now()
+        run_id = str(uuid.uuid4())
+        with closing(self._connect()) as db, db:
+            plan = db.execute("SELECT * FROM plans WHERE id = ?", (plan_id,)).fetchone()
+            if plan is None:
+                raise StoreError("PLAN_NOT_FOUND", "طرح پیدا نشد.", 404)
+            if plan["fingerprint"] != fingerprint:
+                raise StoreError("PLAN_FINGERPRINT_MISMATCH", "ورودی‌ها با Preview تأییدشده مطابقت ندارند؛ Preview تازه بساز.", 409)
+            if plan["status"] != "approved":
+                raise StoreError("INVALID_PLAN_STATE", "اجرای ایجنت فقط برای طرحی مجاز است که صریحاً تأیید شده باشد.", 409)
+            if db.execute("SELECT 1 FROM agent_runs WHERE plan_id = ? AND status = 'running'", (plan_id,)).fetchone():
+                raise StoreError("AGENT_ALREADY_RUNNING", "برای این طرح یک اجرای ایجنت در حال انجام است.", 409)
+            attempt = db.execute(
+                "SELECT COALESCE(MAX(attempt), 0) + 1 AS next_attempt FROM agent_runs WHERE plan_id = ?",
+                (plan_id,),
+            ).fetchone()["next_attempt"]
+            db.execute(
+                """INSERT INTO agent_runs
+                (id, plan_id, attempt, model, status, prompt_chars, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'running', ?, ?, ?)""",
+                (run_id, plan_id, attempt, model, max(0, int(prompt_chars)), now, now),
+            )
+            self._audit(db, plan["project_id"], plan_id, "agent_run_started", {"attempt": attempt, "model": model}, now)
+            row = db.execute("SELECT * FROM agent_runs WHERE id = ?", (run_id,)).fetchone()
+        return self._agent_run(row)
+
+    def finish_agent_run(
+        self, run_id: str, status: str, output_text: str = "", error_message: str = "",
+        prompt_tokens: int = 0, output_tokens: int = 0, duration_ms: int = 0,
+    ) -> dict[str, Any]:
+        if status not in ("succeeded", "failed"):
+            raise StoreError("INVALID_AGENT_STATUS", "وضعیت نهایی ایجنت معتبر نیست.", 400)
+        if not isinstance(output_text, str) or len(output_text) > 200_000:
+            raise StoreError("INVALID_AGENT_OUTPUT", "اندازه خروجی ایجنت معتبر نیست.", 400)
+        error_message = error_message[:1000] if isinstance(error_message, str) else ""
+        counts = [v if isinstance(v, int) and 0 <= v <= 10**12 else 0
+                  for v in (prompt_tokens, output_tokens, duration_ms)]
+        now = utc_now()
+        with closing(self._connect()) as db, db:
+            row = db.execute("SELECT * FROM agent_runs WHERE id = ?", (run_id,)).fetchone()
+            if row is None:
+                raise StoreError("AGENT_RUN_NOT_FOUND", "اجرای ایجنت پیدا نشد.", 404)
+            if row["status"] != "running":
+                raise StoreError("INVALID_AGENT_STATE", "این اجرای ایجنت قبلاً پایان یافته است.", 409)
+            db.execute(
+                """UPDATE agent_runs SET status = ?, output_text = ?, error_message = ?,
+                prompt_tokens = ?, output_tokens = ?, duration_ms = ?, updated_at = ? WHERE id = ?""",
+                (status, output_text, error_message, *counts, now, run_id),
+            )
+            self._audit(db, "default", row["plan_id"], "agent_run_" + status,
+                        {"attempt": row["attempt"], "model": row["model"],
+                         "prompt_tokens": counts[0], "output_tokens": counts[1]}, now)
+            updated = db.execute("SELECT * FROM agent_runs WHERE id = ?", (run_id,)).fetchone()
+        return self._agent_run(updated)
+
+    def get_agent_runs(self, plan_id: str) -> list[dict[str, Any]]:
+        with closing(self._connect()) as db, db:
+            if db.execute("SELECT id FROM plans WHERE id = ?", (plan_id,)).fetchone() is None:
+                raise StoreError("PLAN_NOT_FOUND", "طرح پیدا نشد.", 404)
+            rows = db.execute("SELECT * FROM agent_runs WHERE plan_id = ? ORDER BY attempt DESC", (plan_id,)).fetchall()
+        return [self._agent_run(row) for row in rows]
 
     def create_plan(self, plan: dict[str, Any], fingerprint: str, project_id: str = "default") -> dict[str, Any]:
         now = utc_now()
