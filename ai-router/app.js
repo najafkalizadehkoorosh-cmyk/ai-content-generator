@@ -97,7 +97,9 @@ function renderHistory(records) {
     return '<div class="history-item"><div class="history-copy"><strong>نسخه ' +
       esc(record.version) + ' · ' + esc(record.title) + '</strong><small>' +
       esc(timestamp) + '</small></div><span class="history-status">' +
-      esc(statusLabel(record.status)) + '</span></div>';
+      esc(record.agent_status
+        ? ("ایجنت: " + ({ running: "در حال اجرا", succeeded: "موفق", failed: "ناموفق" }[record.agent_status] || record.agent_status))
+        : statusLabel(record.status)) + '</span></div>';
   }).join("");
 }
 
@@ -353,8 +355,8 @@ function renderPlan() {
     '<div class="section-title">جزئیات برنامه</div>' + taskMarkup +
     '<div class="section-title">صرفه‌جویی و محدودیت‌ها</div>' +
     '<div class="task-card"><p style="margin:0;color:var(--muted);font-size:12px;line-height:1.9">' +
-      esc(tokenModeLabel(plan.tokenMode)) + '. هیچ Provider واقعی به این نسخه وصل نیست و اعداد توکن صرفاً تخمینی هستند. ' +
-      'دکمه تأیید فقط شبیه‌سازی را اجرا می‌کند؛ نه خود پژوهش، سایت یا کد را.' +
+      esc(tokenModeLabel(plan.tokenMode)) + '. اعداد توکن صرفاً تخمینی هستند. ' +
+      'ایجنت فقط خروجی متنی از مدل محلی تولید می‌کند؛ وب‌گردی، اجرای کد، ساخت تصویر یا تغییر فایل انجام نمی‌دهد.' +
       '<ul>' + warnings + '</ul>' +
     '</p></div></div>';
 }

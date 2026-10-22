@@ -49,7 +49,7 @@
       <div class="panel-head">
         <div>
           <h2>۲. Preview قبل از ساخت</h2>
-          <p>این نسخه طرح را در SQLite محلی ذخیره می‌کند؛ هنوز به مدل AI متصل نیست.</p>
+          <p>طرح در SQLite ذخیره می‌شود؛ پس از تأیید می‌توان یک خروجی متنی واقعی از مدل محلی گرفت.</p>
         </div>
         <span id="planStatus" class="status-text">در انتظار درخواست</span>
       </div>
@@ -65,11 +65,14 @@
       <div id="approvalBar" class="approval-bar hidden">
         <div>
           <strong>طرح آماده تأیید است.</strong>
-          <span>تأییدت فقط شبیه‌سازی این طرح را اجرا می‌کند؛ خروجی واقعی تولید نمی‌شود.</span>
+          <span>پس از انتخاب مدل، دکمه زیر یک درخواست واقعی به مدل محلی می‌فرستد. اینترنت، اجرای کد یا تغییر فایل انجام نمی‌شود.</span>
+          <label class="agent-model-label" for="agentModelSelect">مدل محلی برای اجرا</label>
+          <select id="agentModelSelect" disabled><option value="">در حال بررسی مدل‌های محلی...</option></select>
+          <small id="agentModelHelp">هیچ مدل یا سرویس پولی دانلود یا فراخوانی نمی‌شود.</small>
         </div>
         <div class="approval-actions">
           <button id="editBtn" class="ghost-btn">برگشت و ویرایش</button>
-          <button id="approveBtn" class="primary-btn">تأیید و اجرای آزمایشی</button>
+          <button id="approveBtn" class="primary-btn" disabled>تأیید طرح و اجرای ایجنت</button>
         </div>
       </div>
     </section>
@@ -78,12 +81,16 @@
       <div class="panel-head">
         <div>
           <h2>۳. اجرای Taskها</h2>
-          <p>در این نسخه، وضعیت Taskها فقط شبیه‌سازی می‌شود.</p>
+          <p>این پنل نتیجه اجرای واقعی یک درخواست متنی توسط مدل محلی را نشان می‌دهد.</p>
         </div>
         <span id="executionStatus" class="status-text">آماده</span>
       </div>
       <div id="taskList" class="task-list"></div>
-      <div class="final-box" id="finalBox"></div>
+      <div class="final-box" id="finalBox">پس از اجرای ایجنت، وضعیت و نتیجه اینجا نمایش داده می‌شود.</div>
+      <section id="agentResultPanel" class="agent-result hidden" aria-live="polite">
+        <div id="agentRunMeta" class="agent-run-meta"></div>
+        <pre id="agentOutput" dir="auto"></pre>
+      </section>
     </section>
 
     <section class="panel history-panel" id="historyPanel">
@@ -100,7 +107,7 @@
       <div class="panel-head">
         <div>
           <h2>۵. بررسی مدل محلی</h2>
-          <p>فقط وضعیت Ollama و فهرست مدل‌های نصب‌شده بررسی می‌شود؛ هیچ مدلی اجرا یا دانلود نمی‌شود.</p>
+          <p>در حالت بررسی، فقط فهرست مدل‌ها خوانده می‌شود. تولید متن فقط پس از تأیید صریح اجرا می‌شود و دانلود خودکار نداریم.</p>
         </div>
         <button id="providerCheckBtn" class="ghost-btn">بررسی دوباره</button>
       </div>
@@ -114,5 +121,6 @@
   <footer>AI Router Studio v1 • Local SQLite + Approval Gate • AI execution not connected</footer>
   <script src="core.js"></script>
   <script src="app.js"></script>
+  <script src="agent-ui.js"></script>
 </body>
 </html>

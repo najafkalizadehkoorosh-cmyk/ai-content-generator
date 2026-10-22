@@ -31,6 +31,7 @@ jobs:
         run: |
           node --check ai-router/core.js
           node --check ai-router/app.js
+          node --check ai-router/agent-ui.js
           node --check ai-router/tests/core.test.cjs
 
       - name: Run planner tests
